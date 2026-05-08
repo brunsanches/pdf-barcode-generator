@@ -4,7 +4,7 @@ from reportlab.pdfgen import canvas
 import pandas as pd
 
 # Importação do banco de dados do Excel usando a biblioteca Pandas
-bd = "relatoriodbestoque.xlsx"
+bd = "databasemodel.xlsx"
 
 # Lê o arquivo Excel. O parâmetro 'dtype=str' converte tudo para texto, evitando erros de tipagem.
 # O '.fillna('')' limpa os valores nulos (NaN) do Excel quando a célula está em branco, substituindo por texto vazio.
@@ -22,7 +22,7 @@ centro_x = largura_etiqueta / 2  # Variável auxiliar para calcular o centro exa
 
 # Inicialização do arquivo PDF que receberá as etiquetas geradas
 # ATENÇÃO GITHUB: Ao subir para o repositório, é recomendável trocar o caminho inteiro por apenas "Etiquetas.pdf" (caminho relativo).
-pagina = canvas.Canvas(r"C:\Users\Bruno\OneDrive\Desktop\codigoetiqueta2\Etiquetas.pdf", pagesize=medida_etiqueta)
+pagina = canvas.Canvas("Etiquetas_Geradas.pdf", pagesize=medida_etiqueta)
 
 # Configurações visuais do código de barras (altura das barras e largura das linhas)
 altura = 15 * mm
