@@ -1,89 +1,109 @@
-"""
-Sistema de Automação de Etiquetas de Código de Barras
-Este script lê dados de uma planilha Excel e gera um PDF formatado com
-etiquetas padrão Code128, permitindo impressão individual ou em lote.
-"""
-
 from reportlab.graphics.barcode import code128
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 import pandas as pd
 
-# --- CONFIGURAÇÕES E CARREGAMENTO DE DADOS ---
+# Importação do banco de dados do Excel usando a biblioteca Pandas
+bd = "relatoriodbestoque.xlsx"
 
-# Definição do arquivo de entrada e carregamento via Pandas
-# dtype=str garante que códigos com zeros à esquerda não sejam corrompidos
-# .fillna('') remove valores nulos que poderiam quebrar a geração do PDF
-#importação do banco de dados do excel por meio do panda
-bd = ("databasemodel.slsx")
-tabela = pd.read_excel(bd, dtype=str). fillna('')
+# Lê o arquivo Excel. O parâmetro 'dtype=str' converte tudo para texto, evitando erros de tipagem.
+# O '.fillna('')' limpa os valores nulos (NaN) do Excel quando a célula está em branco, substituindo por texto vazio.
+tabela = pd.read_excel(bd, dtype=str).fillna('')
 
-# Mapeamento das colunas do Excel para variáveis do sistema
+# Extração das colunas específicas para variáveis de fácil acesso e manipulação
 items = tabela["ITEM"]
 descricoes = tabela["DESCRICAO"]
-localizacao = tabela["LOCALIZACAO"]
 
-# Configurações dimensionais da etiqueta
-LARGURA_ETIQUETA = 100 * mm
-ALTURA_ETIQUETA = 40 * mm
-MEDIDA_ETIQUETA = (LARGURA_ETIQUETA, ALTURA_ETIQUETA)
-CENTRO_X = LARGURA_ETIQUETA / 2
+# Definição das dimensões da etiqueta física (100mm de largura x 40mm de altura)
+medida_etiqueta = (100 * mm, 40 * mm)
+altura_etiqueta = 40 * mm
+largura_etiqueta = 100 * mm
+centro_x = largura_etiqueta / 2  # Variável auxiliar para calcular o centro exato da etiqueta
 
-# --- INICIALIZAÇÃO DO PDF ---
+# Inicialização do arquivo PDF que receberá as etiquetas geradas
+# ATENÇÃO GITHUB: Ao subir para o repositório, é recomendável trocar o caminho inteiro por apenas "Etiquetas.pdf" (caminho relativo).
+pagina = canvas.Canvas(r"C:\Users\Bruno\OneDrive\Desktop\codigoetiqueta2\Etiquetas.pdf", pagesize=medida_etiqueta)
 
-# O arquivo de saída é gerado no diretório atual para maior portabilidade
-ARQUIVO_SAIDA = "Etiquetas_Geradas.pdf"
-pagina = canvas.Canvas(ARQUIVO_SAIDA, pagesize=MEDIDA_ETIQUETA)
+# Configurações visuais do código de barras (altura das barras e largura das linhas)
+altura = 15 * mm
+largura = 0.8 * mm
+codigo_barras = items
 
-# Configurações técnicas do código de barras
-ALTURA_BARCODE = 13 * mm
-LARGURA_BARRA = 0.8 * mm
+# Define a fonte principal utilizada no documento e o tamanho
+pagina.setFont('Helvetica-Bold', 12.5)
 
-# --- INTERAÇÃO COM O USUÁRIO E LÓGICA DE GERAÇÃO ---
-i=0
-opcao = input("Deseja imprimir apenas uma etiqueta ? (sim/não): ").lower()[:3]
+# Interação com o usuário via terminal: Pergunta se deseja imprimir uma etiqueta específica ou todas
+# O '[:3]' garante que pegaremos apenas as 3 primeiras letras e o '.lower()' garante que funcionará mesmo se digitar "SIM"
+opcao = input("Você quer apenas uma etiqueta? (sim/nao) ")[:3].lower()
 
+# Bloco executado caso o usuário queira apenas UMA etiqueta específica
 if opcao == "sim" or opcao == "s":
     try:
-        codnum= int(input("Qual seria o codigo da etiqueta? "))-1
-    print(f"Gernado etiqueta {[codnum]} de {len(tabela)}: {items[codnum]}")
+        # Recebe o número do item. O "-1" ajusta o input do usuário para o índice base zero do Python/Pandas
+        codnum = int(input("Qual item você deseja imprimir? (Digite a linha): ")) - 1
 
-    # Tratamento de texto: limita a descrição em duas linhas para não transbordar na etiqueta
-    # Converte para maiúsculas para melhor legibilidade na impressão
-    linha1 = str(descricoes[codnum]).strip()[:34].upper()
-    linha2 = str(descricoes[codnum]).strip()[34:68].upper()
-    # Instanciação e cálculo de largura do código de barras
-    desenho = code128.Code128(items[codnum], barWidth=LARGURA_BARRA, barHeight=ALTURA_BARCODE)
-    largura_barcode = desenho.width
+        # Feedback visual no terminal sobre o item sendo processado
+        print(f"Gerando etiqueta {codnum + 1} de {len(tabela)}: {items[codnum]}")
 
-    # Renderização dos elementos na página (Coordenadas em mm)
-    pagina.drawCentredString(CENTRO_X, 35 * mm, linha1)
-    pagina.drawCentredString(CENTRO_X, 30 * mm, linha2)
-    desenho.drawOn(pagina, CENTRO_X - (largura_barcode / 2), 14 * mm)
-    pagina.drawCentredString(CENTRO_X, 7.5 * mm, items[codnum])
-    pagina.drawCentredString(CENTRO_X, 1.5 * mm, str(localizacao[codnum]))
+        # Formatação da descrição linha 1: Limita a 34 caracteres, remove espaços extras (strip) e converte para maiúsculas (upper)
+        limites1 = str(descricoes[codnum]).strip()[:34].upper()
+        # Formatação da descrição linha 2: Pega os caracteres do 34 ao 68 para criar um efeito visual de quebra de linha
+        limites2 = str(descricoes[codnum]).strip()[34:68].upper()
 
-    pagina.showPage()
-    pagina.save()
+        # Geração do elemento gráfico do código de barras no padrão Code 128
+        desenho = code128.Code128(codigo_barras[codnum], barWidth=largura, barHeight=altura)
+        largura_do_barcode = desenho.width
 
+        # Posicionamento dos textos na etiqueta (coordenadas X e Y a partir da base inferior esquerda)
+        pagina.drawCentredString(centro_x, 35 * mm, limites1)  # Descrição superior
+        pagina.drawCentredString(centro_x, 30 * mm, limites2)  # Descrição inferior
+
+        # Posicionamento centralizado do código de barras (calculado subtraindo metade da largura do código do centro da página)
+        desenho.drawOn(pagina, centro_x - (largura_do_barcode / 2), 11 * mm)
+
+        # Posicionamento do código numérico logo abaixo do código de barras
+        pagina.drawCentredString(centro_x, 3.5 * mm, items[codnum])
+
+
+        # Finaliza a formatação da página atual e salva o arquivo PDF no disco
+        pagina.showPage()
+        pagina.save()
+
+    except ValueError:
+        # Bloco de segurança executado se o utilizador digitar letras ou símbolos em vez de números inteiros
+        print("Erro: Por favor, digite apenas números inteiros válidos.")
+
+# Bloco executado caso o usuário opte por gerar etiquetas de TODOS os itens da planilha
 else:
-    print(f"Gerando etiqueta {i + 1} de {len(tabela)}: {items[i]}")
-
+    # A função for com range iterando sobre len(tabela) ajusta-se automaticamente ao tamanho do Excel
     for i in range(len(tabela)):
-        # Processamento de strings para cada etiqueta no loop
-        linha1 = str(descricoes[i]).strip()[:34].upper()
-        linha2 = str(descricoes[i]).strip()[34:68].upper()
+        # Garante a redefinição da fonte correta para cada nova página/etiqueta gerada no loop
+        pagina.setFont('Helvetica-Bold', 12.5)
 
-        # Geração do elemento gráfico do código de barras
-        desenho = code128.Code128(items[i], barWidth=LARGURA_BARRA, barHeight=ALTURA_BARCODE)
-        largura_barcode = desenho.width
+        # Limita e quebra a string de descrição (Linha 1 e Linha 2) da mesma forma da impressão individual
+        limites1 = str(descricoes[i]).strip()[:34].upper()
+        limites2 = str(descricoes[i]).strip()[34:68].upper()
 
-        # Posicionamento dos elementos visuais
-        pagina.drawCentredString(CENTRO_X, 35 * mm, linha1)
-        pagina.drawCentredString(CENTRO_X, 30 * mm, linha2)
-        desenho.drawOn(pagina, CENTRO_X - (largura_barcode / 2), 14 * mm)
-        pagina.drawCentredString(CENTRO_X, 7.5 * mm, items[i])
-        pagina.drawCentredString(CENTRO_X, 1.5 * mm, str(localizacao[i]))
+        # Geração e cálculo da largura do código de barras para o item 'i' do loop
+        desenho = code128.Code128(codigo_barras[i], barWidth=largura, barHeight=altura)
+        largura_do_barcode = desenho.width
+
+        # Aplica a descrição no topo da etiqueta em duas linhas
+        pagina.drawCentredString(centro_x, 35 * mm, limites1)
+        pagina.drawCentredString(centro_x, 30 * mm, limites2)
+
+        # Aplica o código de barras
+        desenho.drawOn(pagina, centro_x - (largura_do_barcode / 2), 11 * mm)
+
+        # Aplica a numeração do item na base
+        pagina.drawCentredString(centro_x, 3 * mm, items[i])
+
+        # Exibe o progresso em tempo real da automação no terminal para controle do usuário
+        print(f"Gerando etiqueta {i + 1} de {len(tabela)}: {items[i]}")
+
+        # Fecha a página atual, preparando o PDF para a próxima etiqueta no próximo ciclo do loop
         pagina.showPage()
 
-
+    # Ao final do loop, salva o documento PDF completo contendo todas as páginas
+    pagina.save()
+    print("Processo Finalizado com Sucesso!")
