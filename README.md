@@ -17,8 +17,3 @@ A criação manual de etiquetas de estoque é um processo demorado e sujeito a e
 - [x] Menu interativo via terminal (Escolha entre Impressão Única ou Impressão em Lote).
 - [x] Tratamento de erros (`try/except`) para evitar crashes na digitação do usuário.
 
-## 📥 Como executar o projeto na sua máquina
-
-1. **Clone este repositório:**
-   ```bash
-   git clone [https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git](https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git)
